@@ -23,12 +23,13 @@ class Record():
         except AttributeError:
             return ''
         
-    def __init__(self,root):
+    def __init__(self, filename, geodic, root):
         self.names = dict([(self.striptext(x.find('th')), self.striptext(x.find('.//div/div/div'))) 
                        for x 
                        in root.findall('.//table[@class="field-group-format group_table_name table table-condensed"]/tbody/tr')
                        ])
         
+        self.name = self.findtext(root, './/div[@class="field field-name-field-al-reference-name field-type-text field-label-inline clearfix"]/div/div')
         self.language_comment = self.fulltext(root.find('.//language_comment'))
         self.references = [self.striptext(li) for li in root.findall('.//div[@class="field field-name-field-al-references field-type-text-long field-label-above"]/div/div/ul/li')]
         self.status = self.findtext(root, './/div[@class="field field-name-field-al-status field-type-list-text field-label-above"]/div/div')
@@ -43,7 +44,7 @@ class Record():
                                  for tr 
                                  in root.findall('.//div[@class="field field-name-ds-code-austlang-speaker-data field-type-ds field-label-hidden"]/div/div/div/table/tbody/tr')[1:]
                                  ]
-        documentation = [{'type':self.fulltext(tr.find('th')), 
+        self.documentation = [{'type':self.fulltext(tr.find('th')), 
                           'size': self.striptext(tr.find('td[1]')), 
                           'grade': self.striptext(tr.find('td[2]'))} 
                          for tr 
@@ -51,34 +52,26 @@ class Record():
         self.manuscript_note = self.findtext(root, './/div[@class="field field-name-field-al-manuscript-note field-type-text-long field-label-above"]/div/div')
         self.grammar = self.findtext(root, './/div[@class="field field-name-field-al-grammar field-type-text-long field-label-above"]/div/div')          
         self.dictionary = self.findtext(root, './/div[@class="field field-name-field-al-dictionary field-type-text-long field-label-above"]/div/div')
-
-        
-
-        
-    def csv():
-        pass
-    
-    def json():
-        pass
-    
-    def haraldhammarstroem():
-        pass
-    
-        
+        try:
+            self.geo = geodic[filename] 
+        except KeyError:
+            self.geo = None
+            print("no geodata for", filename)
         
 if __name__ == "__main__":
-    filenames = glob.glob('*')
+    with open("austlang-compl.csv") as geocsv:
+        lines = geocsv.readlines()
+        geodic = {}
+        for line in lines:
+            ID, name, latitude, longitude =  line.strip().split('\t')
+            geodic[ID.lower()] = (latitude,longitude) 
+    filenames = glob.glob('austlang/*')
     records = {}
     for filename in filenames:
-        if filename.endswith('py'):
-            continue
         with open(filename) as file_: 
-            record = Record(fromstring(file_.read()))
-            records[filename] = record.__dict__
+            strippedfilename = filename.split('/')[-1]
+            record = Record(strippedfilename, geodic, fromstring(file_.read()))
+            records[strippedfilename] = record.__dict__
     jrecords = json.dumps(records, sort_keys=True, indent=4)
-    with open('out.json','w') as out:
+    with open('austlang.json','w') as out:
         out.write(jrecords)
-        #record.csv()
-        #record.json()
-        #record.haraldhammarstroem()
-        
