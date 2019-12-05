@@ -21,6 +21,7 @@ if __name__ == "__main__":
         with requests.Session() as s:  
             r = s.post(url, cookies=cookie) 
             eafcontent = r.text 
+            #abort if fetched data is HTML because this is an error message
             if eafcontent.startswith("<!DOCTYPE html>"): #no access
                 print("no access")
                 continue
